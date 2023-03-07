@@ -1,3 +1,5 @@
+//https://astexplorer.net/
+
 module.exports = {
 	type: 'suggestion',
 	docs: {
@@ -5,7 +7,32 @@ module.exports = {
 	},
 	create(context) {
 		return {
-			'MemberExpression > Identifier': function(node) {
+			NewExpression: node => {
+				//validatedMethod
+				if (node.callee?.name?.toLowerCase() == 'validatedmethod') {
+					const argsObject = node.arguments[0];
+					let hasMixins = false;
+
+					argsObject.properties.forEach(property => {
+						if (property.key.name == 'mixins') hasMixins = true;
+					});
+
+					if (!hasMixins) return context.report({
+						node,
+						message: 'add asyncSupport mixin',
+						data: node
+					});
+				}
+
+				return null;
+			},
+			'MemberExpression > Identifier': node => {
+				const filepath = context.getPhysicalFilename();
+
+				//not interested client only code
+				if (filepath.includes('client/')) return null;
+				if (filepath.includes('ui/')) return null;
+
 				//createIndex
 				if (node.name.toLowerCase() == 'createindex') {
 					return context.report({
@@ -64,16 +91,6 @@ module.exports = {
 				}
 				//map and foreach are a bit dangerous, no?
 
-				//validatedMethod call
-				if (node.name.toLowerCase() == 'call') {
-					return context.report({
-						node,
-						message: 'use the async mixin',
-						data: node
-					});
-				}
-
-				
 				//2.9 changes
 				if (node.name.toLowerCase() == 'user') {
 					return context.report({
@@ -83,7 +100,7 @@ module.exports = {
 					});
 				}
 				return null;
-			},
+			}
 		};
-	},
+	}
 };
